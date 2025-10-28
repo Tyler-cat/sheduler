@@ -132,6 +132,7 @@ export function QueuePanel({ organizationId = null, variant = 'default' }: Queue
         {jobs.map((job) => (
           <article
             key={job.id}
+            data-testid="queue-job"
             className={clsx(
               'rounded-lg border px-4 py-3 text-sm shadow-sm',
               statusClass[job.status] ?? statusClass.QUEUED

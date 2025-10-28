@@ -114,6 +114,7 @@ export function CandidateDrawer({
                 return (
                   <article
                     key={candidate.id}
+                    data-testid="candidate-item"
                     className={clsx(
                       'rounded-lg border border-slate-700/80 bg-slate-900/60 p-4 shadow-sm transition',
                       isActive ? 'ring-2 ring-sky-400' : 'hover:border-slate-500'

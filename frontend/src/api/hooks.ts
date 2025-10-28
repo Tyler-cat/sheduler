@@ -1,6 +1,13 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, ApiError } from './client';
-import type { EventDto, OrganizationDto, QueueJobDto, SchedulingSuggestionDto } from './types';
+import type {
+  EventCreateInput,
+  EventDto,
+  EventUpdateInput,
+  OrganizationDto,
+  QueueJobDto,
+  SchedulingSuggestionDto
+} from './types';
 
 export function useOrganizationsQuery(enabled = true) {
   return useQuery({
@@ -41,6 +48,38 @@ export function useEventsQuery({ organizationId, start, end }: EventsQueryOption
       const payload = await apiFetch<{ events: EventDto[] }>(`/api/events?${params.toString()}`);
       return Array.isArray(payload.events) ? payload.events : [];
     }
+  });
+}
+
+function invalidateEventQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['events'], exact: false });
+}
+
+export function useCreateEventMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: EventCreateInput): Promise<EventDto> => {
+      const payload = await apiFetch<{ event: EventDto }>('/api/events', {
+        method: 'POST',
+        body: JSON.stringify(input)
+      });
+      return payload.event;
+    },
+    onSuccess: () => invalidateEventQueries(queryClient)
+  });
+}
+
+export function useUpdateEventMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: EventUpdateInput }): Promise<EventDto> => {
+      const payload = await apiFetch<{ event: EventDto }>(`/api/events/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+      });
+      return payload.event;
+    },
+    onSuccess: () => invalidateEventQueries(queryClient)
   });
 }
 

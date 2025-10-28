@@ -29,6 +29,7 @@
 - `backend/src/app.js`：新增 `GET /api/scheduling/suggestions`，允许管理员按组织拉取候选排班列表，对应回归位于 `backend/test/api-scheduling.test.js`。
 - `backend/src/stores/prisma-event-store.js` + `backend/test/prisma-event-store.test.js`：提供 Prisma 事件仓储实现，校验冲突检测、区间过滤与 assignee 同步逻辑，为切换数据库持久化打好底座。
 - `backend/src/stores/prisma-availability-store.js` + `backend/test/prisma-availability-store.test.js`：落地可用性缓存的 Prisma 仓储与测试，支持按组织/用户过滤、更新时间排序以及 Busy 段 JSON 正常化。
+- `frontend/src/features/drawer/EventEditorDrawer.tsx` + `frontend/src/routes/AdminWorkspace.tsx`：提供事件新建/编辑抽屉与按钮分离逻辑，结合 React Query mutation 自动刷新日历与冲突提示。
 
 ### 1.3 队列、实时流与外部集成
 - `backend/src/services/queue-service.js` + `backend/test/api-queue.test.js`：提供作业排队、运行、失败重试与度量审计治理，现阶段用于调度、解析与外部同步。
@@ -57,12 +58,14 @@
 - `frontend/`：Vite + React + TS 工作区，包含 `AppShell`、`CalendarSurface`、`QueuePanel`、`CandidateDrawer`、`BrandingPreview` 等骨架组件，演示角色路由、组织过滤与候选排班抽屉交互。
 - `frontend/src/api/{client,hooks,types}.ts`：封装 TanStack Query 与类型化 fetch，串联组织、事件、队列与排班建议 API，并在离线或 4xx 时回退至示例数据。
 - `frontend/src/features/{calendar,queue,drawer}`：组件升级为实时数据视图，加入冲突检测、刷新按钮、候选方案状态徽章与错误提醒。
+- `frontend/playwright.config.ts` + `frontend/tests/e2e/admin-workflow.spec.ts`：建立 Playwright E2E 基线，覆盖新建/编辑事件、冲突提示、候选抽屉与队列面板等核心交互。
 
 ## 2. 渐进迁移（下一 Sprint 作战计划）
 
 ### 2.1 目标速览
 1. **持久化落地**：把内存实现迁移到 Prisma/PostgreSQL，满足迁移回滚、RLS、行级审计要求。
 2. **前端衔接**：交付最小可用的 React/Vite 前端，覆盖抽屉交互、冲突提示、队列可视化，并配套 Playwright E2E。
+   - （阶段进展）前端 Playwright 用例 `frontend/tests/e2e/admin-workflow.spec.ts` 已验证“新建事件→冲突提示→候选抽屉→队列面板”核心路径，为后续 CI 集成奠定基础。
 3. **观测与告警闭环**：补齐 8 个核心指标与 Grafana 告警策略，确保解析、排班、队列、实时流等链路可观测。
 
 ### 2.2 数据库与迁移治理

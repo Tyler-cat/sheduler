@@ -174,3 +174,9 @@ Stage twenty-nine links the admin surface to live scheduling data:
 - New React Query hooks (`frontend/src/api`) call `/api/organizations`, `/api/events`, `/api/queue/jobs`, and `/api/scheduling/suggestions` with graceful fallbacks when the BFF is offline.
 - `CalendarSurface` now renders real events with overlap-based 冲突检测, refresh controls, and organization-aware ranges instead of 静态示例。
 - `QueuePanel` 与 `CandidateDrawer` 读取实时队列和排班建议列表；后者依赖新增的 `GET /api/scheduling/suggestions` 路由展示可行窗口、覆盖度和错误提示。
+
+Stage thirty introduces event editing and Playwright regression coverage:
+
+- `EventEditorDrawer` 提供右侧抽屉，涵盖事件名称、时间、负责人等字段，并复用 React Query mutation 新建或更新事件后自动刷新日历与冲突状态。
+- `CalendarSurface` 调整顶部按钮区，新增“候选方案”“划块创建”分离按钮，并允许点击事件行进入编辑模式；列表项、冲突提示与队列卡片都补充了 `data-testid` 以便 E2E 断言。
+- `frontend/playwright.config.ts` 与 `frontend/tests/e2e/admin-workflow.spec.ts` 建立 Playwright 基线，模拟 API 响应覆盖“新建事件→冲突提示→候选抽屉→队列面板”核心路径，纳入下一阶段的 CI 回归。

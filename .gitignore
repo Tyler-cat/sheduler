@@ -5,3 +5,5 @@ __pycache__/
 npm-debug.log*
 backend/*.log
 ai-service/.pytest_cache/
+playwright-report/
+test-results/

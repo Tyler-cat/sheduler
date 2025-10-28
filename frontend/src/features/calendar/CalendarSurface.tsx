@@ -7,6 +7,8 @@ import { useOrganizationStore } from '../../state/organization-store';
 export interface CalendarSurfaceProps {
   mode?: 'admin' | 'personal';
   onOpenCandidateDrawer?: () => void;
+  onCreateEvent?: (range: { start: string; end: string }) => void;
+  onEditEvent?: (event: EventDto) => void;
 }
 
 interface DisplayEvent {
@@ -16,6 +18,7 @@ interface DisplayEvent {
   end: string;
   assignees: string[];
   conflict?: boolean;
+  source?: EventDto;
 }
 
 const fallbackEvents: DisplayEvent[] = [
@@ -116,11 +119,17 @@ function mapEvents(events: EventDto[] | undefined, fallback: DisplayEvent[]): Di
     start: event.start,
     end: event.end,
     assignees: event.assigneeIds?.length ? event.assigneeIds : ['未指派'],
-    conflict: conflicts.has(event.id)
+    conflict: conflicts.has(event.id),
+    source: event
   }));
 }
 
-export function CalendarSurface({ mode = 'admin', onOpenCandidateDrawer }: CalendarSurfaceProps) {
+export function CalendarSurface({
+  mode = 'admin',
+  onOpenCandidateDrawer,
+  onCreateEvent,
+  onEditEvent
+}: CalendarSurfaceProps) {
   const { activeOrgId } = useOrganizationStore();
   const [view, setView] = useState('week');
   const [zoom, setZoom] = useState(30);
@@ -137,6 +146,14 @@ export function CalendarSurface({ mode = 'admin', onOpenCandidateDrawer }: Calen
     () => mapEvents(eventsQuery.data, fallbackEvents),
     [eventsQuery.data]
   );
+
+  const defaultCreateRange = useMemo(() => {
+    const start = new Date(rangeStart);
+    start.setHours(9, 0, 0, 0);
+    const end = new Date(start);
+    end.setMinutes(end.getMinutes() + zoom);
+    return { start: start.toISOString(), end: end.toISOString() };
+  }, [rangeStart, zoom]);
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-slate-800 bg-slate-900/40">
@@ -195,7 +212,14 @@ export function CalendarSurface({ mode = 'admin', onOpenCandidateDrawer }: Calen
           </button>
           <button
             type="button"
+            className="rounded-md border border-slate-700 px-3 py-1 text-xs text-slate-300 transition hover:bg-slate-800"
             onClick={() => onOpenCandidateDrawer?.()}
+          >
+            候选方案
+          </button>
+          <button
+            type="button"
+            onClick={() => onCreateEvent?.(defaultCreateRange)}
             className="rounded-md bg-brand px-3 py-1 text-xs font-semibold text-slate-950 shadow-sm hover:bg-sky-400"
           >
             划块创建
@@ -210,29 +234,41 @@ export function CalendarSurface({ mode = 'admin', onOpenCandidateDrawer }: Calen
           </header>
           <ul className="space-y-2 text-sm">
             {events.map((event) => (
-              <li
-                key={event.id}
-                className={clsx(
-                  'flex items-center justify-between rounded-md border px-3 py-2',
-                  event.conflict ? 'border-rose-500/60 bg-rose-950/40 text-rose-100' : 'border-slate-700 bg-slate-900/60'
-                )}
-              >
-                <div>
-                  <p className="font-semibold">{event.title}</p>
-                  <p className="text-xs text-slate-400">
-                    {new Date(event.start).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                    {' – '}
-                    {new Date(event.end).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  {event.assignees.map((name) => (
-                    <span key={`${event.id}-${name}`} className="rounded-full bg-brand.surface px-2 py-1 text-slate-200">
-                      {name}
-                    </span>
-                  ))}
-                  {event.conflict ? <span className="text-rose-300">冲突</span> : null}
-                </div>
+              <li key={event.id}>
+                <button
+                  type="button"
+                  data-testid="calendar-event"
+                  onClick={() => (event.source ? onEditEvent?.(event.source) : undefined)}
+                  disabled={!event.source}
+                  className={clsx(
+                    'flex w-full items-center justify-between rounded-md border px-3 py-2 text-left transition',
+                    event.conflict
+                      ? 'border-rose-500/60 bg-rose-950/40 text-rose-100 hover:border-rose-300'
+                      : 'border-slate-700 bg-slate-900/60 text-slate-200 hover:border-slate-500',
+                    !event.source ? 'cursor-default opacity-80' : 'cursor-pointer'
+                  )}
+                >
+                  <div>
+                    <p className="font-semibold">{event.title}</p>
+                    <p className="text-xs text-slate-400">
+                      {new Date(event.start).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                      {' – '}
+                      {new Date(event.end).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    {event.assignees.map((name) => (
+                      <span key={`${event.id}-${name}`} className="rounded-full bg-brand.surface px-2 py-1 text-slate-200">
+                        {name}
+                      </span>
+                    ))}
+                    {event.conflict ? (
+                      <span className="text-rose-300" data-testid="event-conflict">
+                        冲突
+                      </span>
+                    ) : null}
+                  </div>
+                </button>
               </li>
             ))}
           </ul>

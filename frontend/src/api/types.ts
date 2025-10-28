@@ -20,6 +20,27 @@ export interface EventDto {
   metadata?: Record<string, unknown> | null;
 }
 
+export interface EventCreateInput {
+  organizationId: string;
+  title: string;
+  start: string;
+  end: string;
+  assigneeIds: string[];
+  description?: string | null;
+  color?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface EventUpdateInput {
+  title?: string;
+  start?: string;
+  end?: string;
+  assigneeIds?: string[];
+  description?: string | null;
+  color?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
 export interface QueueJobDto {
   id: string;
   organizationId: string | null;
