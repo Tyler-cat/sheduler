@@ -1,0 +1,11 @@
+{
+  "name": "sheduler-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "npm@10.7.0",
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "test": "npm run test --workspace backend",
+    "lint": "npm run lint --workspace backend"
+  }
+}

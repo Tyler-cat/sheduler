@@ -1,0 +1,25 @@
+{
+  "name": "scheduler-backend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "lint": "node scripts/lint.mjs",
+    "prisma:generate": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate --schema prisma/schema.prisma",
+    "prisma:migrate:status": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma migrate status --schema prisma/schema.prisma",
+    "prisma:migrate:deploy": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma migrate deploy --schema prisma/schema.prisma",
+    "prisma:migrate:reset": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma migrate reset --skip-seed --force --schema prisma/schema.prisma",
+    "prisma:migrate:verify": "node --no-warnings scripts/validate-migrations.mjs",
+    "prisma:seed": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 node --no-warnings prisma/seed.mjs"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^6.1.0",
+    "@prisma/client": "^6.18.0",
+    "pg": "^8.13.1",
+    "prisma": "^6.18.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.11"
+  }
+}
