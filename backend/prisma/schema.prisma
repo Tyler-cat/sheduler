@@ -1,0 +1,239 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  STAFF
+}
+
+model User {
+  id            String               @id @default(cuid())
+  email         String               @unique
+  passwordHash  String
+  globalRole    Role                 @default(STAFF)
+  organizations OrganizationAdmin[]
+  eventsCreated Event[]              @relation("created_events")
+  eventsUpdated Event[]              @relation("updated_events")
+  auditLogs     AuditLog[]
+  groupMemberships GroupMember[]
+  capabilities  Json?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+}
+
+model Organization {
+  id        String               @id @default(cuid())
+  name      String
+  slug      String               @unique
+  status    String               @default("active")
+  admins    OrganizationAdmin[]
+  groups    Group[]
+  events    Event[]
+  branding  Json?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+}
+
+model OrganizationAdmin {
+  userId String
+  orgId  String
+  user   User         @relation(fields: [userId], references: [id])
+  org    Organization @relation(fields: [orgId], references: [id])
+
+  assignedAt DateTime @default(now())
+
+  @@id([userId, orgId])
+}
+
+model Group {
+  id        String        @id @default(cuid())
+  name      String
+  orgId     String
+  org       Organization  @relation(fields: [orgId], references: [id])
+  members   GroupMember[]
+  events    Event[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([orgId, name])
+}
+
+model GroupMember {
+  groupId String
+  userId  String
+  role    String      @default("member")
+  group   Group       @relation(fields: [groupId], references: [id])
+  user    User        @relation(fields: [userId], references: [id])
+  joinedAt DateTime   @default(now())
+
+  @@id([groupId, userId])
+}
+
+model Event {
+  id             String       @id @default(cuid())
+  organizationId String
+  groupId        String?
+  title          String
+  description    String?      @db.Text
+  start          DateTime
+  end            DateTime
+  allDay         Boolean      @default(false)
+  color          String?
+  visibility     String       @default("private")
+  createdBy      String
+  updatedBy      String?
+  version        Int          @default(1)
+  repeatInterval Int?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  org            Organization @relation(fields: [organizationId], references: [id])
+  group          Group?       @relation(fields: [groupId], references: [id])
+  creator        User         @relation("created_events", fields: [createdBy], references: [id])
+  updater        User?        @relation("updated_events", fields: [updatedBy], references: [id])
+  assignees      EventAssignee[]
+  recurrence     EventRecurrenceRule?
+
+  @@index([organizationId, start, end])
+  @@index([groupId])
+}
+
+model EventAssignee {
+  eventId String
+  userId  String
+  role    String      @default("participant")
+  event   Event       @relation(fields: [eventId], references: [id])
+  user    User        @relation(fields: [userId], references: [id])
+  addedAt DateTime    @default(now())
+
+  @@id([eventId, userId])
+}
+
+model EventRecurrenceRule {
+  eventId  String   @id
+  rrule    String
+  exdates  String?
+  interval Int?
+  metadata Json?
+  event    Event    @relation(fields: [eventId], references: [id])
+}
+
+model SchedulingSuggestion {
+  id             String    @id @default(cuid())
+  orgId          String
+  solver         String
+  status         String    @default("PENDING")
+  inputSnapshot  Json
+  outputPlan     Json?
+  scoreBreakdown Json?
+  createdBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now())
+  committedAt    DateTime?
+  committedBy    String?
+  queueJobId     String?
+  errors         Json?
+  resultingEventIds Json?
+  completedAt    DateTime?
+  metadata       Json?     @map("notes")
+
+  organization   Organization @relation(fields: [orgId], references: [id])
+}
+
+model AvailabilityCache {
+  id           String   @id @default(cuid())
+  orgId        String
+  userId       String
+  source       String
+  rangeStart   DateTime
+  rangeEnd     DateTime
+  freeBusyJson Json
+  checksum     String?
+  refreshedAt  DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@index([orgId, userId, rangeStart])
+  @@index([refreshedAt])
+}
+
+model QueueJob {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           String
+  status         String   @default("QUEUED")
+  priority       Int      @default(0)
+  payload        Json?
+  attempts       Int      @default(0)
+  maxAttempts    Int      @default(3)
+  dedupeKey      String?
+  createdBy      String?
+  queuedAt       DateTime @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+  workerId       String?
+  result         Json?
+  lastError      String?
+  errorHistory   Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, status, createdAt])
+  @@index([dedupeKey])
+}
+
+model Notification {
+  id             String   @id @default(cuid())
+  organizationId String
+  subject        String?
+  message        String
+  category       String   @default("general")
+  metadata       Json?
+  createdBy      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization          @relation(fields: [organizationId], references: [id])
+  creator      User?                  @relation(fields: [createdBy], references: [id])
+  recipients   NotificationRecipient[]
+
+  @@index([organizationId, createdAt(sort: Desc)])
+}
+
+model NotificationRecipient {
+  notificationId String
+  recipientId    String
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  recipient    User         @relation(fields: [recipientId], references: [id])
+
+  @@id([notificationId, recipientId])
+  @@index([recipientId, readAt])
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  actorId     String
+  orgId       String?
+  action      String
+  subjectType String
+  subjectId   String?
+  before      Json?
+  after       Json?
+  context     Json?
+  createdAt   DateTime  @default(now())
+
+  actor       User      @relation(fields: [actorId], references: [id])
+}

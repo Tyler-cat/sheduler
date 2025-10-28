@@ -1,0 +1,92 @@
+{
+  "title": "Scheduler Core Observability",
+  "panels": [
+    {
+      "title": "AI Parse Success Rate",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(ai_parse_success_total[5m])) / sum(rate(ai_jobs_submitted_total[5m]))",
+          "legendFormat": "success_ratio"
+        }
+      ]
+    },
+    {
+      "title": "Scheduling Duration P95",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(scheduling_duration_ms_bucket[5m]))",
+          "legendFormat": "{{solver}}"
+        }
+      ]
+    },
+    {
+      "title": "Queue Backlog",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "queue_backlog_total",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+    {
+      "title": "Socket Broadcast Latency",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "socket_broadcast_latency_ms_max",
+          "legendFormat": "{{event}}"
+        }
+      ]
+    },
+    {
+      "title": "HTTP 5xx",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "sum(rate(http_5xx_total[5m]))",
+          "legendFormat": "5xx"
+        }
+      ]
+    },
+    {
+      "title": "DB Slow Queries",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "increase(db_slow_queries_total[5m])",
+          "legendFormat": "{{model}}/{{operation}}"
+        }
+      ]
+    },
+    {
+      "title": "External Calendar Failures",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "increase(external_calendar_failures_total[10m])",
+          "legendFormat": "{{provider}}"
+        }
+      ]
+    },
+    {
+      "title": "Session Concurrency",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "session_concurrency_gauge",
+          "legendFormat": "Realtime Sessions"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  }
+}

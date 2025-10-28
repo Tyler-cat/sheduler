@@ -1,0 +1,74 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: scheduler-alerts
+  labels:
+    app: scheduler
+spec:
+  groups:
+    - name: scheduler-core
+      rules:
+        - alert: AIParseSuccessDrop
+          expr: sum(rate(ai_parse_success_total[5m])) / sum(rate(ai_jobs_submitted_total[5m])) < 0.95
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: AI 解析成功率下降
+            description: 最近 10 分钟解析成功率低于 95%。
+        - alert: SchedulingLatencyHigh
+          expr: histogram_quantile(0.95, rate(scheduling_duration_ms_bucket[5m])) > 30000
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: 排班求解耗时过高
+            description: 排班求解 P95 超过 30 秒。
+        - alert: QueueBacklog
+          expr: max(queue_backlog_total) > 50
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: 队列积压
+            description: 队列待处理作业超过 50 条。
+        - alert: SocketLatency
+          expr: socket_broadcast_latency_ms_max > 500
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: 实时推送延迟过高
+            description: SSE 推送延迟超过 500ms。
+        - alert: Http5xxBurst
+          expr: sum(rate(http_5xx_total[1m])) > 5
+          for: 3m
+          labels:
+            severity: critical
+          annotations:
+            summary: 后端 5xx 激增
+            description: 最近 3 分钟内 5xx 请求超过阈值。
+        - alert: DBSlowQuery
+          expr: increase(db_slow_queries_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: 数据库慢查询
+            description: 检测到新的慢查询事件。
+        - alert: ExternalCalendarFailures
+          expr: increase(external_calendar_failures_total[10m]) >= 3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: 外部日历同步失败
+            description: 10 分钟内同步失败次数超过 3 次。
+        - alert: SessionConcurrencyLimit
+          expr: session_concurrency_gauge > 200
+          for: 5m
+          labels:
+            severity: info
+          annotations:
+            summary: 会话并发接近上限
+            description: 实时连接数超出预设阈值，请关注横向扩容。
